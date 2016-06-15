@@ -5,16 +5,18 @@ setwd(dirPath)
 #############################################################################
 require(TeachingSampling)
 source("str/Funciones Comunes/SimMASGamma.r")
-source("str/Estimador HT/E.HT.r")
+source("str/Estimador HT/E.PiPS.r")
 source("str/Funciones Comunes/Medida.Calidad.r")
 #############################################################################
 # Definir función para la simulación
 SimHT<-function(Pob,n){
   N<-nrow(Pob)
   ty<-sum(Pob[,"Y"])
-  sel<-sample(N,n)
+  sel<-S.piPS(n,Pob[,"X"])
+  pik<-sel[,"Pik.s"]
+  sel<-sel[,"samp"]
   ys<-Pob[sel,"Y"]
-  E.HT(ys,N,n,ty)
+  E.PiPS(ys,pik = pik,ty)
 }
 #############################################################################
 # Inicializar las variables
@@ -33,13 +35,14 @@ RsultMAS<- data.frame(Coverage.100=NA,
 #############################################################################
 for (i in 1:9) {
   set.seed(1)
-  Pob<-SimMASGamma(N,shape,rate,Escenarios[i,"sigma"])
-
-  ResulSim<-t(replicate(1000,SimHT(Pob,Escenarios[i,"n"])))
+#  Pob<-SimMASGamma(N,shape,rate,Escenarios[i,"sigma"])
+   Pob<-SimGammaNoL(N,shape,rate,Escenarios[i,"sigma"])
+   plot(Pob$X,log(Pob$Y),pch=20)
+   ResulSim<-t(replicate(50,SimHT(Pob,Escenarios[i,"n"])))
   ty<-sum(Pob[,"Y"])
   RsultMAS[i,]<-Medida.Calidad(ResulSim,ty)
 }
 
 RsultMAS<-cbind(Escenarios,RsultMAS)
 
-write.table(RsultMAS,"output/ResulMAS.txt",sep = "\t",dec = ".",row.names = FALSE)
+write.table(RsultMAS,"output/ResulPiPS.txt",sep = "\t",dec = ".",row.names = FALSE)

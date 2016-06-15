@@ -24,7 +24,7 @@ rate=1
 #############################################################################
 # Crear escenario
 n=c(50,400,1000)
-sigma=c(74,13.7,3.6)
+sigma=c(500,100,50)
 Escenarios<-expand.grid(n=n,sigma=sigma)
 RsultMAS<- data.frame(Coverage.100=NA,
                       Longitud.Relative.1000=NA,
@@ -32,14 +32,14 @@ RsultMAS<- data.frame(Coverage.100=NA,
                       CV.1000=NA)
 #############################################################################
 for (i in 1:9) {
-  set.seed(1)
-  Pob<-SimMASGamma(N,shape,rate,Escenarios[i,"sigma"])
-
-  ResulSim<-t(replicate(1000,SimHT(Pob,Escenarios[i,"n"])))
+  set.seed(2)
+  Pob<-SimGammaNoL(N,100,4,Escenarios[i,"sigma"])
+  plot(Pob,pch=20)
+  ResulSim<-t(replicate(500,SimHT(Pob,Escenarios[i,"n"])))
   ty<-sum(Pob[,"Y"])
   RsultMAS[i,]<-Medida.Calidad(ResulSim,ty)
 }
 
 RsultMAS<-cbind(Escenarios,RsultMAS)
-
+RsultMAS
 write.table(RsultMAS,"output/ResulMAS.txt",sep = "\t",dec = ".",row.names = FALSE)
