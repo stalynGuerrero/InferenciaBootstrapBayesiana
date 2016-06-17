@@ -1,17 +1,15 @@
 #############################################################################
 rm(list = ls())
 options(digits = 10)
-dirPath<-"/home/sguerrero/Documentos/Dropbox/articulos/Artículo Proporción bayesiana/InferenciaBootstrapBayesiana/InferenciaBootstrapBayesiana"
+dirPath<-"/home/sguerrero/Documentos/Dropbox/articulos/Artículo Proporción bayesiana/InferenciaBootstrapBayesiana/Algoritmo prueba/InferenciaBootstrapBayesiana"
 setwd(dirPath)
 #############################################################################
 require(TeachingSampling)
 require(hdrcde)
 require(cubature)
+source("str/Funciones Comunes/SimMASGamma.r")
 source("str/Funciones Comunes/VeroBootPiPS.r")
 source("str/Funciones Comunes/Medida.Calidad.r")
-Pob<-read.table("PobBB.txt",header = T)
-names(Pob)<-c("Y","X")
-Pob<-na.omit(Pob)
 #############################################################################
 # Definir función para la simulación
 SimHT <- function(Pob, n, apriori = "unif", k) {
@@ -66,8 +64,15 @@ SimHT <- function(Pob, n, apriori = "unif", k) {
     CV       = CV )              # Coeficiente de variaci'on estimado
 }
 #############################################################################
+# Inicializar las variables
+N=20000
+shape=4
+rate=1
+#############################################################################
 # Crear escenario
 n=c(50,400,1000)
+sigma=c(74,13.7,3.6)
+Escenarios<-expand.grid(n=n,sigma=sigma)
 RsultMAS1<- data.frame(Coverage.100=NA,
                       Longitud.Relative.1000=NA,
                       Sesgo.Relative.1000=NA,
@@ -77,42 +82,32 @@ RsultMAS3<-RsultMAS1
 RsultMAS4<-RsultMAS1
 RsultMAS5<-RsultMAS1
 #############################################################################
-j=0
-for (i in n) {
-  j=j+1
+n=50
+sigma=74
+for (i in 1:9) {
   set.seed(1)
-  ResulSimU   <-t(replicate(10,SimHT(Pob,i)))
-  ResulSimN_N <-t(replicate(10,SimHT(Pob,i,apriori = "normal",k=1000)))
-  ResulSimG_N <-t(replicate(10,SimHT(Pob,i,apriori = "gamma",k=10000)))
-  ResulSimN   <-t(replicate(10,SimHT(Pob,i,apriori = "normal",k=10)))
-  ResulSimG   <-t(replicate(10,SimHT(Pob,i,apriori = "gamma",k=100)))
+  Pob<-SimMASGamma(N,shape,rate,Escenarios[i,"sigma"])
+  ResulSimU   <-t(replicate(1000,SimHT(Pob,Escenarios[i,"n"])))
+  ResulSimN_N <-t(replicate(1000,SimHT(Pob,Escenarios[i,"n"],apriori = "normal",k=1000)))
+  ResulSimG_N <-t(replicate(1000,SimHT(Pob,Escenarios[i,"n"],apriori = "gamma",k=10000)))
+  ResulSimN   <-t(replicate(1000,SimHT(Pob,Escenarios[i,"n"],apriori = "normal",k=10)))
+  ResulSimG   <-t(replicate(1000,SimHT(Pob,Escenarios[i,"n"],apriori = "gamma",k=100)))
   ty<-sum(Pob[,"Y"])
-  print(RsultMAS1[j,]<-Medida.Calidad(ResulSimU,ty))
-  print(RsultMAS2[j,]<-Medida.Calidad(ResulSimN_N,ty))
-  print(RsultMAS3[j,]<-Medida.Calidad(ResulSimG_N,ty))
-  print(RsultMAS4[j,]<-Medida.Calidad(ResulSimN,ty))
-  print(RsultMAS5[j,]<-Medida.Calidad(ResulSimG,ty))
+  print(RsultMAS1[i,]<-Medida.Calidad(ResulSimU,ty))
+  print(RsultMAS2[i,]<-Medida.Calidad(ResulSimN_N,ty))
+  print(RsultMAS3[i,]<-Medida.Calidad(ResulSimG_N,ty))
+  print(RsultMAS4[i,]<-Medida.Calidad(ResulSimN,ty))
+  print(RsultMAS5[i,]<-Medida.Calidad(ResulSimG,ty))
   }
 
-RsultUNF<-cbind(n,RsultMAS1)
-RsultNOR_N<-cbind(n,RsultMAS2)
-RsultGAM_N<-cbind(n,RsultMAS3)
-RsultNOR<-cbind(n,RsultMAS4)
-RsultGAM<-cbind(n,RsultMAS5)
+RsultUNF<-cbind(Escenarios,RsultMAS1)
+RsultNOR_N<-cbind(Escenarios,RsultMAS2)
+RsultGAM_N<-cbind(Escenarios,RsultMAS3)
+RsultNOR<-cbind(Escenarios,RsultMAS4)
+RsultGAM<-cbind(Escenarios,RsultMAS5)
 
-write.table(RsultUNF,"output/No_Lin/RsultUNFPiPS.txt",sep = "\t",dec = ".",row.names = FALSE)
-write.table(RsultNOR_N,"output/No_Lin/RsultNOR_NPiPS.txt",sep = "\t",dec = ".",row.names = FALSE)
-write.table(RsultGAM_N,"output/No_Lin/RsultGAM_NPiPS.txt",sep = "\t",dec = ".",row.names = FALSE)
-write.table(RsultNOR,"output/No_Lin/RsultNORPiPS.txt",sep = "\t",dec = ".",row.names = FALSE)
-write.table(RsultGAM,"output/No_Lin/RsultGAMPiPS.txt",sep = "\t",dec = ".",row.names = FALSE)
-
-setwd("/home/sguerrero/Documentos/Dropbox/articulos/Artículo Proporción bayesiana/InferenciaBootstrapBayesiana/InferenciaBootstrapBayesiana/output/No_Lin")
-#############################################################################
-x<-dir()
-for(i in 1:length(x)){
-  if(i==1){
-    xx= cbind(diseno=gsub(".txt","",x[i]),read.csv(x[i],sep="\t"))
-  }else{
-    xx=rbind(xx, cbind(diseno=gsub(".txt","",x[i]),read.csv(x[i],sep="\t")))
-  }
-}
+write.table(RsultUNF,"output/RsultUNFPiPS.txt",sep = "\t",dec = ".",row.names = FALSE)
+write.table(RsultNOR_N,"output/RsultNOR_NPiPS.txt",sep = "\t",dec = ".",row.names = FALSE)
+write.table(RsultGAM_N,"output/RsultGAM_NPiPS.txt",sep = "\t",dec = ".",row.names = FALSE)
+write.table(RsultNOR,"output/RsultNORPiPS.txt",sep = "\t",dec = ".",row.names = FALSE)
+write.table(RsultGAM,"output/RsultGAMPiPS.txt",sep = "\t",dec = ".",row.names = FALSE)
